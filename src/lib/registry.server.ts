@@ -4,13 +4,32 @@
 import logger from './logger.server'
 
 const REGISTRY_URL = process.env.REGISTRY_URL || 'http://localhost:5000'
+const REGISTRY_USERNAME = process.env.REGISTRY_USERNAME
+const REGISTRY_PASSWORD = process.env.REGISTRY_PASSWORD
+const BASIC_AUTH =
+  REGISTRY_USERNAME && REGISTRY_PASSWORD
+    ? `Basic ${Buffer.from(
+        `${REGISTRY_USERNAME}:${REGISTRY_PASSWORD}`,
+      ).toString('base64')}`
+    : null
+
+function withAuthHeaders(init?: RequestInit) {
+  const headers = new Headers(init?.headers)
+  if (BASIC_AUTH && !headers.has('Authorization')) {
+    headers.set('Authorization', BASIC_AUTH)
+  }
+  return headers
+}
 
 async function registryFetch(path: string, options?: RequestInit) {
   const method = options?.method ?? 'GET'
   const start = Date.now()
 
   try {
-    const response = await fetch(`${REGISTRY_URL}${path}`, options)
+    const response = await fetch(`${REGISTRY_URL}${path}`, {
+      ...options,
+      headers: withAuthHeaders(options),
+    })
     const durationMs = Date.now() - start
     const logMeta = { method, path, status: response.status, durationMs }
 

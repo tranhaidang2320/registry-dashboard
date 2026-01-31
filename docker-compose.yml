@@ -1,0 +1,32 @@
+services:
+  registry:
+    image: registry:2
+    container_name: registry
+    ports:
+      - "5000:5000"
+    environment:
+      - REGISTRY_AUTH=htpasswd
+      - REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd
+      - REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm
+      - REGISTRY_STORAGE_DELETE_ENABLED=true
+    volumes:
+      - registry-data:/var/lib/registry
+      - ./registry/auth:/auth
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      REGISTRY_URL: http://registry:5000
+      REGISTRY_USERNAME: ${REGISTRY_USERNAME}
+      REGISTRY_PASSWORD: ${REGISTRY_PASSWORD}
+      PORT: "3000"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - registry
+
+volumes:
+  registry-data:
