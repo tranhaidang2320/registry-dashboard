@@ -14,7 +14,8 @@ import {
 } from '@/components/ui/table'
 
 export const Route = createFileRoute('/repo/$name/ref/$ref')({
-  loader: ({ params }) => getManifest({ data: { name: params.name, ref: params.ref } }),
+  loader: ({ params }) =>
+    getManifest({ data: { name: params.name, ref: params.ref } }),
   component: ManifestDetails,
 })
 
@@ -22,9 +23,10 @@ function ManifestDetails() {
   const { name, ref } = Route.useParams()
   const manifest = Route.useLoaderData()
 
+  const manifestType = manifest.mediaType || manifest.contentType || ''
   const isManifestList =
-    manifest.contentType === 'application/vnd.docker.distribution.manifest.list.v2+json' ||
-    manifest.contentType === 'application/vnd.oci.image.index.v1+json'
+    manifestType.includes('application/vnd.docker.distribution.manifest.list.v2+json') ||
+    manifestType.includes('application/vnd.oci.image.index.v1+json')
 
   return (
     <div className="container mx-auto py-10 px-4">
@@ -61,6 +63,12 @@ function ManifestDetails() {
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">Schema Version</dt>
                 <dd className="text-lg font-semibold">{manifest.schemaVersion}</dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-muted-foreground">Digest</dt>
+                <dd className="text-sm font-mono bg-muted p-2 rounded mt-1 break-all">
+                  {manifest.digest || 'Unknown'}
+                </dd>
               </div>
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">Media Type</dt>

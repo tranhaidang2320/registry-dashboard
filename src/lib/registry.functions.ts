@@ -5,6 +5,8 @@ import { createServerFn } from '@tanstack/react-start'
 import {
   deleteManifestByTag,
   fetchManifest,
+  fetchManifestDigest,
+  fetchCatalogPage,
   fetchRepositories,
   fetchTags,
 } from './registry.server'
@@ -12,6 +14,14 @@ import {
 export const getRepositories = createServerFn({
   method: 'GET',
 }).handler(fetchRepositories)
+
+export const getCatalogPage = createServerFn({
+  method: 'GET',
+})
+  .inputValidator(
+    (d: { last?: string | null; n?: number | null } | undefined) => d ?? {},
+  )
+  .handler(async ({ data }) => fetchCatalogPage(data))
 
 export const getTags = createServerFn({
   method: 'GET',
@@ -24,6 +34,12 @@ export const getManifest = createServerFn({
 })
   .inputValidator((d: { name: string; ref: string }) => d)
   .handler(async ({ data: { name, ref } }) => fetchManifest(name, ref))
+
+export const getManifestDigest = createServerFn({
+  method: 'GET',
+})
+  .inputValidator((d: { name: string; ref: string }) => d)
+  .handler(async ({ data: { name, ref } }) => fetchManifestDigest(name, ref))
 
 export const deleteTag = createServerFn({
   method: 'POST',

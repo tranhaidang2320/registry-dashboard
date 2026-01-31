@@ -12,11 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as MaintenanceRouteImport } from './routes/maintenance'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RepoNameRouteImport } from './routes/repo.$name'
-import { Route as ApiReposRouteImport } from './routes/api/repos'
 import { Route as RepoNameRefRefRouteImport } from './routes/repo.$name.ref.$ref'
-import { Route as ApiReposNameTagsRouteImport } from './routes/api/repos.$name.tags'
-import { Route as ApiReposNameTagsTagRouteImport } from './routes/api/repos.$name.tags.$tag'
-import { Route as ApiReposNameManifestsRefRouteImport } from './routes/api/repos.$name.manifests.$ref'
 
 const MaintenanceRoute = MaintenanceRouteImport.update({
   id: '/maintenance',
@@ -33,101 +29,42 @@ const RepoNameRoute = RepoNameRouteImport.update({
   path: '/repo/$name',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiReposRoute = ApiReposRouteImport.update({
-  id: '/api/repos',
-  path: '/api/repos',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const RepoNameRefRefRoute = RepoNameRefRefRouteImport.update({
   id: '/ref/$ref',
   path: '/ref/$ref',
   getParentRoute: () => RepoNameRoute,
 } as any)
-const ApiReposNameTagsRoute = ApiReposNameTagsRouteImport.update({
-  id: '/$name/tags',
-  path: '/$name/tags',
-  getParentRoute: () => ApiReposRoute,
-} as any)
-const ApiReposNameTagsTagRoute = ApiReposNameTagsTagRouteImport.update({
-  id: '/$tag',
-  path: '/$tag',
-  getParentRoute: () => ApiReposNameTagsRoute,
-} as any)
-const ApiReposNameManifestsRefRoute =
-  ApiReposNameManifestsRefRouteImport.update({
-    id: '/$name/manifests/$ref',
-    path: '/$name/manifests/$ref',
-    getParentRoute: () => ApiReposRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/maintenance': typeof MaintenanceRoute
-  '/api/repos': typeof ApiReposRouteWithChildren
   '/repo/$name': typeof RepoNameRouteWithChildren
-  '/api/repos/$name/tags': typeof ApiReposNameTagsRouteWithChildren
   '/repo/$name/ref/$ref': typeof RepoNameRefRefRoute
-  '/api/repos/$name/manifests/$ref': typeof ApiReposNameManifestsRefRoute
-  '/api/repos/$name/tags/$tag': typeof ApiReposNameTagsTagRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/maintenance': typeof MaintenanceRoute
-  '/api/repos': typeof ApiReposRouteWithChildren
   '/repo/$name': typeof RepoNameRouteWithChildren
-  '/api/repos/$name/tags': typeof ApiReposNameTagsRouteWithChildren
   '/repo/$name/ref/$ref': typeof RepoNameRefRefRoute
-  '/api/repos/$name/manifests/$ref': typeof ApiReposNameManifestsRefRoute
-  '/api/repos/$name/tags/$tag': typeof ApiReposNameTagsTagRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/maintenance': typeof MaintenanceRoute
-  '/api/repos': typeof ApiReposRouteWithChildren
   '/repo/$name': typeof RepoNameRouteWithChildren
-  '/api/repos/$name/tags': typeof ApiReposNameTagsRouteWithChildren
   '/repo/$name/ref/$ref': typeof RepoNameRefRefRoute
-  '/api/repos/$name/manifests/$ref': typeof ApiReposNameManifestsRefRoute
-  '/api/repos/$name/tags/$tag': typeof ApiReposNameTagsTagRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/maintenance'
-    | '/api/repos'
-    | '/repo/$name'
-    | '/api/repos/$name/tags'
-    | '/repo/$name/ref/$ref'
-    | '/api/repos/$name/manifests/$ref'
-    | '/api/repos/$name/tags/$tag'
+  fullPaths: '/' | '/maintenance' | '/repo/$name' | '/repo/$name/ref/$ref'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/maintenance'
-    | '/api/repos'
-    | '/repo/$name'
-    | '/api/repos/$name/tags'
-    | '/repo/$name/ref/$ref'
-    | '/api/repos/$name/manifests/$ref'
-    | '/api/repos/$name/tags/$tag'
-  id:
-    | '__root__'
-    | '/'
-    | '/maintenance'
-    | '/api/repos'
-    | '/repo/$name'
-    | '/api/repos/$name/tags'
-    | '/repo/$name/ref/$ref'
-    | '/api/repos/$name/manifests/$ref'
-    | '/api/repos/$name/tags/$tag'
+  to: '/' | '/maintenance' | '/repo/$name' | '/repo/$name/ref/$ref'
+  id: '__root__' | '/' | '/maintenance' | '/repo/$name' | '/repo/$name/ref/$ref'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   MaintenanceRoute: typeof MaintenanceRoute
-  ApiReposRoute: typeof ApiReposRouteWithChildren
   RepoNameRoute: typeof RepoNameRouteWithChildren
 }
 
@@ -154,13 +91,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RepoNameRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/repos': {
-      id: '/api/repos'
-      path: '/api/repos'
-      fullPath: '/api/repos'
-      preLoaderRoute: typeof ApiReposRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/repo/$name/ref/$ref': {
       id: '/repo/$name/ref/$ref'
       path: '/ref/$ref'
@@ -168,54 +98,8 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RepoNameRefRefRouteImport
       parentRoute: typeof RepoNameRoute
     }
-    '/api/repos/$name/tags': {
-      id: '/api/repos/$name/tags'
-      path: '/$name/tags'
-      fullPath: '/api/repos/$name/tags'
-      preLoaderRoute: typeof ApiReposNameTagsRouteImport
-      parentRoute: typeof ApiReposRoute
-    }
-    '/api/repos/$name/tags/$tag': {
-      id: '/api/repos/$name/tags/$tag'
-      path: '/$tag'
-      fullPath: '/api/repos/$name/tags/$tag'
-      preLoaderRoute: typeof ApiReposNameTagsTagRouteImport
-      parentRoute: typeof ApiReposNameTagsRoute
-    }
-    '/api/repos/$name/manifests/$ref': {
-      id: '/api/repos/$name/manifests/$ref'
-      path: '/$name/manifests/$ref'
-      fullPath: '/api/repos/$name/manifests/$ref'
-      preLoaderRoute: typeof ApiReposNameManifestsRefRouteImport
-      parentRoute: typeof ApiReposRoute
-    }
   }
 }
-
-interface ApiReposNameTagsRouteChildren {
-  ApiReposNameTagsTagRoute: typeof ApiReposNameTagsTagRoute
-}
-
-const ApiReposNameTagsRouteChildren: ApiReposNameTagsRouteChildren = {
-  ApiReposNameTagsTagRoute: ApiReposNameTagsTagRoute,
-}
-
-const ApiReposNameTagsRouteWithChildren =
-  ApiReposNameTagsRoute._addFileChildren(ApiReposNameTagsRouteChildren)
-
-interface ApiReposRouteChildren {
-  ApiReposNameTagsRoute: typeof ApiReposNameTagsRouteWithChildren
-  ApiReposNameManifestsRefRoute: typeof ApiReposNameManifestsRefRoute
-}
-
-const ApiReposRouteChildren: ApiReposRouteChildren = {
-  ApiReposNameTagsRoute: ApiReposNameTagsRouteWithChildren,
-  ApiReposNameManifestsRefRoute: ApiReposNameManifestsRefRoute,
-}
-
-const ApiReposRouteWithChildren = ApiReposRoute._addFileChildren(
-  ApiReposRouteChildren,
-)
 
 interface RepoNameRouteChildren {
   RepoNameRefRefRoute: typeof RepoNameRefRefRoute
@@ -232,7 +116,6 @@ const RepoNameRouteWithChildren = RepoNameRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   MaintenanceRoute: MaintenanceRoute,
-  ApiReposRoute: ApiReposRouteWithChildren,
   RepoNameRoute: RepoNameRouteWithChildren,
 }
 export const routeTree = rootRouteImport

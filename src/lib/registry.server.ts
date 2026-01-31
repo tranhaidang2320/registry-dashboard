@@ -50,12 +50,50 @@ async function registryFetch(path: string, options?: RequestInit) {
   }
 }
 
-export async function fetchRepositories(): Promise<string[]> {
-  const response = await registryFetch('/v2/_catalog')
+function parseCatalogNextLast(linkHeader: string | null) {
+  if (!linkHeader) {
+    return null
+  }
+
+  const match = linkHeader.match(/<[^>]*[?&]last=([^&>]+)[^>]*>\s*;\s*rel="next"/i)
+  if (!match) {
+    return null
+  }
+
+  return decodeURIComponent(match[1])
+}
+
+export async function fetchCatalogPage(options?: {
+  last?: string | null
+  n?: number | null
+}): Promise<{ repositories: string[]; nextLast: string | null }> {
+  const params = new URLSearchParams()
+
+  if (options?.last) {
+    params.set('last', options.last)
+  }
+
+  if (options?.n && Number.isFinite(options.n) && options.n > 0) {
+    params.set('n', String(options.n))
+  }
+
+  const path = params.toString()
+    ? `/v2/_catalog?${params.toString()}`
+    : '/v2/_catalog'
+  const response = await registryFetch(path)
+
   if (!response.ok) {
     throw new Error(`Failed to fetch catalog: ${response.statusText}`)
   }
+
   const data = (await response.json()) as { repositories: string[] }
+  const nextLast = parseCatalogNextLast(response.headers.get('Link'))
+
+  return { repositories: data.repositories, nextLast }
+}
+
+export async function fetchRepositories(): Promise<string[]> {
+  const data = await fetchCatalogPage()
   return data.repositories
 }
 
@@ -93,6 +131,32 @@ export async function fetchManifest(name: string, ref: string): Promise<any> {
     contentType,
     ...data,
   }
+}
+
+export async function fetchManifestDigest(
+  name: string,
+  ref: string,
+): Promise<string> {
+  const headResponse = await registryFetch(`/v2/${name}/manifests/${ref}`, {
+    method: 'HEAD',
+    headers: {
+      Accept:
+        'application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json',
+    },
+  })
+
+  if (!headResponse.ok) {
+    throw new Error(
+      `Failed to get digest for ${name}:${ref}: ${headResponse.statusText}`,
+    )
+  }
+
+  const digest = headResponse.headers.get('Docker-Content-Digest')
+  if (!digest) {
+    throw new Error(`No digest found for ${name}:${ref}`)
+  }
+
+  return digest
 }
 
 export async function deleteManifestByTag(
