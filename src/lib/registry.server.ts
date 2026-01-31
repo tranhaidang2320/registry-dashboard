@@ -1,10 +1,38 @@
 // src/lib/registry.server.ts
 // This file contains server-only logic and is not imported on the client.
 
+import logger from './logger.server'
+
 const REGISTRY_URL = process.env.REGISTRY_URL || 'http://localhost:5000'
 
+async function registryFetch(path: string, options?: RequestInit) {
+  const method = options?.method ?? 'GET'
+  const start = Date.now()
+
+  try {
+    const response = await fetch(`${REGISTRY_URL}${path}`, options)
+    const durationMs = Date.now() - start
+    const logMeta = { method, path, status: response.status, durationMs }
+
+    if (response.ok) {
+      logger.info(logMeta, 'registry request')
+    } else {
+      logger.warn(logMeta, 'registry request failed')
+    }
+
+    return response
+  } catch (error) {
+    const durationMs = Date.now() - start
+    logger.error(
+      { err: error, method, path, durationMs },
+      'registry request error',
+    )
+    throw error
+  }
+}
+
 export async function fetchRepositories(): Promise<string[]> {
-  const response = await fetch(`${REGISTRY_URL}/v2/_catalog`)
+  const response = await registryFetch('/v2/_catalog')
   if (!response.ok) {
     throw new Error(`Failed to fetch catalog: ${response.statusText}`)
   }
@@ -13,7 +41,7 @@ export async function fetchRepositories(): Promise<string[]> {
 }
 
 export async function fetchTags(name: string): Promise<string[]> {
-  const response = await fetch(`${REGISTRY_URL}/v2/${name}/tags/list`)
+  const response = await registryFetch(`/v2/${name}/tags/list`)
   if (!response.ok) {
     throw new Error(`Failed to fetch tags for ${name}: ${response.statusText}`)
   }
@@ -27,7 +55,7 @@ export async function fetchManifest(name: string, ref: string): Promise<any> {
       'application/vnd.docker.distribution.manifest.v2+json, application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.manifest.v1+json, application/vnd.oci.image.index.v1+json',
   })
 
-  const response = await fetch(`${REGISTRY_URL}/v2/${name}/manifests/${ref}`, {
+  const response = await registryFetch(`/v2/${name}/manifests/${ref}`, {
     headers,
   })
 
@@ -52,16 +80,13 @@ export async function deleteManifestByTag(
   name: string,
   tag: string,
 ): Promise<{ success: true }> {
-  const headResponse = await fetch(
-    `${REGISTRY_URL}/v2/${name}/manifests/${tag}`,
-    {
-      method: 'HEAD',
-      headers: {
-        Accept:
-          'application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json',
-      },
+  const headResponse = await registryFetch(`/v2/${name}/manifests/${tag}`, {
+    method: 'HEAD',
+    headers: {
+      Accept:
+        'application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json',
     },
-  )
+  })
 
   if (!headResponse.ok) {
     throw new Error(
@@ -74,12 +99,9 @@ export async function deleteManifestByTag(
     throw new Error(`No digest found for ${name}:${tag}`)
   }
 
-  const deleteResponse = await fetch(
-    `${REGISTRY_URL}/v2/${name}/manifests/${digest}`,
-    {
-      method: 'DELETE',
-    },
-  )
+  const deleteResponse = await registryFetch(`/v2/${name}/manifests/${digest}`, {
+    method: 'DELETE',
+  })
 
   if (!deleteResponse.ok) {
     throw new Error(

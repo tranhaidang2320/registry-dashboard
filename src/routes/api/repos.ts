@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
 import { getRepositories } from '../../lib/registry.functions'
+import logger from '../../lib/logger.server'
 
 export const Route = createFileRoute('/api/repos')({
   server: {
@@ -10,6 +11,7 @@ export const Route = createFileRoute('/api/repos')({
           const repositories = await getRepositories()
           return json({ repositories })
         } catch (error) {
+          logger.error({ err: error, route: '/api/repos' }, 'api error')
           return json({ error: (error as Error).message }, { status: 500 })
         }
       },
