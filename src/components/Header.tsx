@@ -1,82 +1,48 @@
-import { Link } from '@tanstack/react-router'
+import { Link } from "@tanstack/react-router"
+import { Search } from "lucide-react"
 
-import { useState } from 'react'
-import {
-  ChevronDown,
-  ChevronRight,
-  Database,
-  Home,
-  Menu,
-  X,
-} from 'lucide-react'
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import ThemeToggle from "@/components/ThemeToggle"
+import { useCommandPalette } from "@/components/CommandPalette"
 
-export default function Header() {
-  const [isOpen, setIsOpen] = useState(false)
-  const [groupedExpanded, setGroupedExpanded] = useState<
-    Record<string, boolean>
-  >({})
+export default function Header({ endpoint }: { endpoint?: string }) {
+  const { setOpen } = useCommandPalette()
 
   return (
-    <>
-      <header className="p-4 flex items-center bg-gray-800 text-white shadow-lg">
-        <button
-          onClick={() => setIsOpen(true)}
-          className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
-          aria-label="Open menu"
-        >
-          <Menu size={24} />
-        </button>
-        <h1 className="ml-4 text-xl font-semibold">
-          <Link to="/">
-            Registry Dashboard
-          </Link>
-        </h1>
-      </header>
-
-      <aside
-        className={`fixed top-0 left-0 h-full w-80 bg-gray-900 text-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-      >
-        <div className="flex items-center justify-between p-4 border-b border-gray-700">
-          <h2 className="text-xl font-bold">Navigation</h2>
-          <button
-            onClick={() => setIsOpen(false)}
-            className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
-            aria-label="Close menu"
-          >
-            <X size={24} />
-          </button>
+    <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-3">
+        <div className="flex items-center gap-2 min-w-[180px]">
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/">Registry Dashboard</Link>
+          </Button>
+          {endpoint ? (
+            <Badge
+              variant="secondary"
+              className="hidden sm:inline-flex text-xs text-muted-foreground"
+            >
+              {endpoint}
+            </Badge>
+          ) : null}
         </div>
 
-        <nav className="flex-1 p-4 overflow-y-auto">
-          <Link
-            to="/"
-            onClick={() => setIsOpen(false)}
-            className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 transition-colors mb-2"
-            activeProps={{
-              className:
-                'flex items-center gap-3 p-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 transition-colors mb-2',
-            }}
+        <div className="flex-1">
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full justify-start text-muted-foreground gap-2"
+            onClick={() => setOpen(true)}
           >
-            <Home size={20} />
-            <span className="font-medium">Catalog</span>
-          </Link>
+            <Search className="h-4 w-4" />
+            <span>Search repos & tags...</span>
+            <span className="ml-auto text-xs text-muted-foreground">Ctrl+K</span>
+          </Button>
+        </div>
 
-          <Link
-            to="/maintenance"
-            onClick={() => setIsOpen(false)}
-            className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 transition-colors mb-2"
-            activeProps={{
-              className:
-                'flex items-center gap-3 p-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 transition-colors mb-2',
-            }}
-          >
-            <Database size={20} />
-            <span className="font-medium">Maintenance</span>
-          </Link>
-        </nav>
-      </aside>
-    </>
+        <div className="flex items-center gap-2 justify-end min-w-[180px]">
+          <ThemeToggle />
+        </div>
+      </div>
+    </header>
   )
 }

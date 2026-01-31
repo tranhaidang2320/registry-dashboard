@@ -46,6 +46,12 @@ export type NameTagInput = {
   tag: string
 }
 
+export type TagListInput = {
+  name: string
+  last?: string | null
+  n?: number | null
+}
+
 export function validateCatalogInput(
   data: { last?: unknown; n?: unknown } | undefined,
 ): CatalogInput {
@@ -70,5 +76,15 @@ export function validateNameTagInput(
   return {
     name: assertString(data?.name, 'name'),
     tag: assertString(data?.tag, 'tag'),
+  }
+}
+
+export function validateTagListInput(
+  data: { name?: unknown; last?: unknown; n?: unknown } | undefined,
+): TagListInput {
+  return {
+    name: assertString(data?.name, 'name'),
+    last: assertOptionalString(data?.last, 'last'),
+    n: assertOptionalNumber(data?.n, 'n'),
   }
 }

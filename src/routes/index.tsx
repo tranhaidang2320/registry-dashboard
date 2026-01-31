@@ -12,7 +12,10 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
+import { ArrowUpDown, ExternalLink, RefreshCw } from 'lucide-react'
+
 import { getCatalogPage } from '../lib/registry.functions'
+import { usePaginationStack } from '@/lib/pagination'
 import {
   Table,
   TableBody,
@@ -21,10 +24,24 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ArrowUpDown, ExternalLink } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+import PageHeader from '@/components/PageHeader'
+import PageControls from '@/components/PageControls'
+import { Panel, PanelHeader } from '@/components/Panel'
+import StateBlock from '@/components/StateBlock'
+import RowActionsMenu from '@/components/RowActionsMenu'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb'
+
+const PAGE_SIZE = 50
 
 type RepoRow = {
   repo: string
@@ -39,15 +56,19 @@ export const Route = createFileRoute('/')({
     getCatalogPage({
       data: {
         last: deps.last ?? null,
+        n: PAGE_SIZE,
       },
     }),
   component: Catalog,
   errorComponent: ({ error }) => <CatalogError error={error} />,
+  pendingComponent: CatalogPending,
 })
 
 function Catalog() {
   const { repositories, nextLast } = Route.useLoaderData()
+  const { last } = Route.useSearch()
   const router = useRouter()
+  const { stack, saveStack } = usePaginationStack('catalog')
 
   const data = React.useMemo<RepoRow[]>(
     () => repositories.map((repo) => ({ repo })),
@@ -69,7 +90,13 @@ function Catalog() {
           </Button>
         ),
         cell: ({ row }) => (
-          <div className="font-medium">{row.getValue('repo')}</div>
+          <Link
+            to="/repo/$name"
+            params={{ name: row.original.repo }}
+            className="font-medium hover:underline"
+          >
+            {row.getValue('repo')}
+          </Link>
         ),
       },
       {
@@ -78,22 +105,34 @@ function Catalog() {
         enableColumnFilter: false,
         header: () => <div className="text-right">Actions</div>,
         cell: ({ row }) => (
-          <div className="text-right">
-            <Button variant="ghost" size="sm" asChild>
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="outline" size="sm" asChild>
               <Link
                 to="/repo/$name"
                 params={{ name: row.original.repo }}
                 className="flex items-center gap-2"
               >
                 <ExternalLink className="h-4 w-4" />
-                View Tags
+                Open
               </Link>
             </Button>
+            <RowActionsMenu
+              actions={[
+                {
+                  label: 'View tags',
+                  onSelect: () =>
+                    router.navigate({
+                      to: '/repo/$name',
+                      params: { name: row.original.repo },
+                    }),
+                },
+              ]}
+            />
           </div>
         ),
       },
     ],
-    [],
+    [router],
   )
 
   const [sorting, setSorting] = React.useState<SortingState>([
@@ -117,120 +156,199 @@ function Catalog() {
     getFilteredRowModel: getFilteredRowModel(),
   })
 
+  const handleNext = () => {
+    if (!nextLast) return
+    const nextStack = [...stack, last ?? null]
+    saveStack(nextStack)
+    router.navigate({
+      to: '/',
+      search: { last: nextLast },
+    })
+  }
+
+  const handlePrev = () => {
+    if (stack.length === 0) return
+    const nextStack = stack.slice(0, -1)
+    const prevLast = nextStack[nextStack.length - 1] ?? null
+    saveStack(nextStack)
+    router.navigate({
+      to: '/',
+      search: prevLast ? { last: prevLast } : {},
+    })
+  }
+
   return (
-    <div className="container mx-auto py-10 px-4">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Registry Catalog</h1>
-          <p className="text-muted-foreground">
-            Browse your OCI repositories.
-          </p>
-        </div>
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      <div className="flex items-center justify-between gap-2">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to="/">Home</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Repositories</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <Button variant="outline" size="sm" onClick={() => router.invalidate()}>
+          <RefreshCw className="h-4 w-4" />
+          Refresh
+        </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Repositories ({repositories.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <Input
-                placeholder="Filter repositories..."
-                value={
-                  (table.getColumn('repo')?.getFilterValue() as string) ?? ''
-                }
-                onChange={(event) =>
-                  table.getColumn('repo')?.setFilterValue(event.target.value)
-                }
-                className="max-w-sm"
-              />
-              <Button
-                variant="outline"
-                onClick={() =>
-                  router.navigate({
-                    to: '/',
-                    search: nextLast ? { last: nextLast } : {},
-                  })
-                }
-                disabled={!nextLast}
-              >
-                Next
-              </Button>
-            </div>
+      <PageHeader
+        title="Repositories"
+        subtitle="Browsing registry:2 via server proxy"
+      />
 
-            <Table>
-              <TableHeader>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <TableHead key={header.id}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext(),
-                            )}
-                      </TableHead>
+      <PageControls
+        leftControls={
+          <Input
+            placeholder="Search repositories..."
+            value={(table.getColumn('repo')?.getFilterValue() as string) ?? ''}
+            onChange={(event) =>
+              table.getColumn('repo')?.setFilterValue(event.target.value)
+            }
+            className="sm:w-[360px]"
+          />
+        }
+        rightControls={
+          <div className="text-sm text-muted-foreground">
+            Showing {table.getRowModel().rows.length} repositories
+          </div>
+        }
+      />
+
+      <Panel>
+        <PanelHeader>
+          <div className="text-sm font-medium">Repositories</div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePrev}
+              disabled={stack.length === 0}
+            >
+              Prev
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleNext}
+              disabled={!nextLast}
+            >
+              Next
+            </Button>
+          </div>
+        </PanelHeader>
+        <div className="p-4">
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <TableHead key={header.id}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow key={row.id}>
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
+                      </TableCell>
                     ))}
                   </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows.length ? (
-                  table.getRowModel().rows.map((row) => (
-                    <TableRow key={row.id}>
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext(),
-                          )}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={columns.length} className="text-center py-10">
-                      <div className="flex flex-col items-center gap-2">
-                        <p className="text-muted-foreground">No repositories found.</p>
-                        <p className="text-sm text-muted-foreground/60">
-                          Check your REGISTRY_URL configuration.
-                        </p>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="p-0">
+                    <StateBlock
+                      title="Nothing here (yet)."
+                      description="Push an image to get started."
+                    />
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </Panel>
+    </div>
+  )
+}
+
+function CatalogPending() {
+  return (
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      <div className="flex items-center justify-between gap-2">
+        <Skeleton className="h-4 w-36" />
+        <Skeleton className="h-8 w-24" />
+      </div>
+      <div className="space-y-2">
+        <Skeleton className="h-6 w-48" />
+        <Skeleton className="h-4 w-64" />
+      </div>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <Skeleton className="h-9 w-72" />
+        <Skeleton className="h-4 w-40" />
+      </div>
+      <Panel>
+        <PanelHeader>
+          <Skeleton className="h-4 w-28" />
+          <div className="flex gap-2">
+            <Skeleton className="h-8 w-16" />
+            <Skeleton className="h-8 w-16" />
           </div>
-        </CardContent>
-      </Card>
+        </PanelHeader>
+        <div className="p-4 space-y-2">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <Skeleton key={index} className="h-4 w-full" />
+          ))}
+        </div>
+      </Panel>
     </div>
   )
 }
 
 function CatalogError({ error }: { error: unknown }) {
   const router = useRouter()
-  const message = 'Failed to load repositories.'
 
   return (
-    <div className="container mx-auto py-10 px-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Unable to load repositories</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">{message}</p>
-          <div className="flex gap-2">
-            <Button onClick={() => router.invalidate()}>Retry</Button>
-            <Button variant="secondary" asChild>
-              <Link to="/maintenance">Registry Maintenance</Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      <PageHeader
+        title="Repositories"
+        subtitle="Browsing registry:2 via server proxy"
+      />
+      <StateBlock
+        title="Can't reach registry"
+        description={
+          error instanceof Error
+            ? error.message
+            : 'Check your REGISTRY_URL configuration.'
+        }
+        actions={
+          <Button onClick={() => router.invalidate()} variant="outline">
+            Retry
+          </Button>
+        }
+      />
     </div>
   )
 }

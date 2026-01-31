@@ -1,9 +1,9 @@
 import { createServerFn } from '@tanstack/react-start'
-import { fetchTags } from '../../registry.server'
-import { assertString } from './validators'
+import { fetchTagsPage } from '../../registry.server'
+import { validateTagListInput } from './validators'
 
 export const getTags = createServerFn({
   method: 'GET',
 })
-  .inputValidator((name: unknown) => assertString(name, 'name'))
-  .handler(async ({ data: name }) => fetchTags(name))
+  .inputValidator(validateTagListInput)
+  .handler(async ({ data }) => fetchTagsPage(data.name, data))
