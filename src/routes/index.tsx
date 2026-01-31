@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
 import { getRepositories } from '../lib/registry.functions'
 import {
   Table,
@@ -15,6 +15,7 @@ import { ExternalLink } from 'lucide-react'
 export const Route = createFileRoute('/')({
   loader: () => getRepositories(),
   component: Catalog,
+  errorComponent: ({ error }) => <CatalogError error={error} />,
 })
 
 function Catalog() {
@@ -75,6 +76,30 @@ function Catalog() {
               )}
             </TableBody>
           </Table>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function CatalogError({ error }: { error: unknown }) {
+  const router = useRouter()
+  const message = 'Failed to load repositories.'
+
+  return (
+    <div className="container mx-auto py-10 px-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Unable to load repositories</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">{message}</p>
+          <div className="flex gap-2">
+            <Button onClick={() => router.invalidate()}>Retry</Button>
+            <Button variant="secondary" asChild>
+              <Link to="/maintenance">Registry Maintenance</Link>
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
